@@ -19,6 +19,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.latihan.roomdb.database.daftarBelanja
 import com.latihan.roomdb.database.daftarBelanjaDB
+import com.latihan.roomdb.database.historyBelanja
+import com.latihan.roomdb.database.historyBelanjaDB
 import com.latihan.roomdb.ui.theme.RoomDBTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +29,7 @@ import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private lateinit var  DB : daftarBelanjaDB
+    private lateinit var DB2 : historyBelanjaDB
     private lateinit var adapterDaftar: adapterDaftar
     private var arDaftar : MutableList<daftarBelanja> = mutableListOf()
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,6 +38,7 @@ class MainActivity : ComponentActivity() {
         setContentView(R.layout.activity_main)
 
         var _fabAdd = findViewById<FloatingActionButton>(R.id.fabAdd)
+        var _fabHis = findViewById<FloatingActionButton>(R.id.cekHistory)
 
         adapterDaftar = adapterDaftar(arDaftar)
 
@@ -53,14 +57,41 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+
+            override fun doneData(dtBelanja: daftarBelanja) {
+                Log.d("DEBUG","doneData Ke Trigger")
+                CoroutineScope(Dispatchers.IO).async {
+                    Log.d("DEBUG", "CoroutineScope Ke Trigger")
+                    DB2.funhistoryBelanjaDAO().insert(
+                        historyBelanja(
+                            tanggal = dtBelanja.tanggal,
+                            item = dtBelanja.item,
+                            jumlah = dtBelanja.jumlah
+                            )
+                    )
+                    Log.d("DEBUG","Insert Done")
+                    DB.fundaftarBelanjaDAO().delete(dtBelanja)
+                    val daftar = DB.fundaftarBelanjaDAO().selectAll()
+
+                    Log.d("DEBUG","Delete Done")
+
+                    withContext(Dispatchers.Main){
+                        adapterDaftar.isiData(daftar)
+                    }
+                }
+            }
         })
 
 
 
         DB = daftarBelanjaDB.getDatabase(this)
+        DB2 = historyBelanjaDB.getDatabase(this)
 
         _fabAdd.setOnClickListener {
             startActivity(Intent(this, TambahDaftar::class.java))
+        }
+        _fabHis.setOnClickListener{
+            startActivity(Intent(this, History::class.java))
         }
 
     }
